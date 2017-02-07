@@ -1,12 +1,13 @@
 body{
   text-align:center;
   font-family:sans-serif;
-  background-color:lightblue;
+  background-color: steelblue;
 }
 
 h1{
   background-color:#EEE;
   padding: 20px;
+  vertical-align:text-bottom;
 }
 
 section{
@@ -29,4 +30,9 @@ section p{
   padding-left: 20px;
   font-weight:100;
   line-height:1.2em;
+}
+
+footer{
+  border-top:2px solid white;
+  margin-top:500px;
 }

@@ -1,4 +1,4 @@
-var svg = d3.select("#vis1"),
+var svg = d3.select("#week2-7a"),
     width = +svg.attr("width"),
     height = +svg.attr("height"),
     angles = d3.range(0, 2 * Math.PI, Math.PI / 200);

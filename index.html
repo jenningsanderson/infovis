@@ -1,28 +1,62 @@
 <html>
 
 <head>
-<title>Info Viz!</title>
-
+<title>Visualizing Info!</title>
 <link rel="stylesheet" href="css/main.css">
 <script src="lib/d3.min.js"></script>
-
 </head>
-
 <body>
 
-<h1>Vis Playground</h1>
+<svg id="header" width="100" height="75" style="display:fixed; right:30%; z-index:1000;"></svg>
+<h1>InfoVis Playground (Spring 2017)</h1>
+
 
 <section id="Week-2.7">
   <h2>Week 2.7</h2>
   <p>Find a dataset that contains at least three variables. Use D3 to create two visualizations of that dataset that use those three variables. Each visualization should map the variables to a different set of visual channels.</p>
   <p>For each visualization, include a description of what the visualization shows and any conclusions that can be drawn from that visualization. Then, compare and contrast the kinds of information you can draw from each visualization as a function of the visual encodings used in the visualization. Use your readings for inspiration.</p>
 
-  <svg id="vis1" width="960" height="500"></svg>
+  <svg id="week2-7a" width="50" height="200"></svg>
 
-</div>
-<script src="js/vis1.js"></script>
+  <!-- <script src="js/vis1.js"></script> -->
 
 </section>
-</body>
 
+<footer>
+  <p>Header graphic original: <a target="_blank" href="https://bl.ocks.org/mbostock/2d466ec3417722e3568cd83fc35338e3">bl.ocks/mbostock</a></p>
+</footer>
+
+<script type="text/javascript">
+  var svg = d3.select("#header"),
+      width = +svg.attr("width"),
+      height = +svg.attr("height"),
+      angles = d3.range(0, 2 * Math.PI, Math.PI / 200);
+
+  var path = svg.append("g")
+      .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
+      .attr("fill", "none")
+      .attr("stroke-width", 2)
+      .attr("stroke-linejoin", "round")
+    .selectAll("path")
+    .data(["turquoise", "maroon", "yellow"])
+    .enter().append("path")
+      .attr("stroke", function(d) { return d; })
+      .style("mix-blend-mode", "lighten")
+      .datum(function(d, i) {
+        return d3.radialLine()
+            .curve(d3.curveLinearClosed)
+            .angle(function(a) { return a; })
+            .radius(function(a) {
+              var t = d3.now() / 1000;
+              return 15 + Math.cos(a * 8 - i * 2 * Math.PI / 3 + t) * Math.pow((1 + Math.cos(a - t)) / 2, 3) * 15;
+            });
+      });
+
+  d3.timer(function() {
+    path.attr("d", function(d) {
+      return d(angles);
+    });
+  });
+</script>
+</body>
 </html>
