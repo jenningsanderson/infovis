@@ -4,21 +4,31 @@
 <title>Visualizing Info!</title>
 <link rel="stylesheet" href="css/main.css">
 <script src="lib/d3.min.js"></script>
+<script src="lib/lodash.min.js"></script>
 </head>
 <body>
 
 <svg id="header" width="100" height="75" style="display:fixed; right:30%; z-index:1000;"></svg>
 <h1>InfoVis Playground (Spring 2017)</h1>
 
+<section id="Week-3.2">
+  <h2>Interaction with D3 and MapboxGL</h2>
+  <a style="text-decoration:none;" href="interaction_map.html"><img src="img/interaction.png">
+    <p>This interactive visualization allows interaction between two independent MapboxGL maps and a d3 bar chart. As you pan around the map on the right (above zoom level 15), the histogram on the left updates to reflect the height profile of all the buildings on the right. Clicking on an object renders it in the smaller map above.</p>
+
+  </a>
+</section>
 
 <section id="Week-2.7">
   <h2>Week 2.7</h2>
   <p>Find a dataset that contains at least three variables. Use D3 to create two visualizations of that dataset that use those three variables. Each visualization should map the variables to a different set of visual channels.</p>
   <p>For each visualization, include a description of what the visualization shows and any conclusions that can be drawn from that visualization. Then, compare and contrast the kinds of information you can draw from each visualization as a function of the visual encodings used in the visualization. Use your readings for inspiration.</p>
 
-  <svg id="week2-7a" width="50" height="200"></svg>
+  <svg id="beerChart"></svg>
+  <br><br><br>
+  <svg id="beerChart2"></svg>
 
-  <!-- <script src="js/vis1.js"></script> -->
+  <script src="js/beer.js"></script>
 
 </section>
 
@@ -27,13 +37,13 @@
 </footer>
 
 <script type="text/javascript">
-  var svg = d3.select("#header"),
-      width = +svg.attr("width"),
-      height = +svg.attr("height"),
-      angles = d3.range(0, 2 * Math.PI, Math.PI / 200);
+  var header_svg = d3.select("#header"),
+      h_width = +header_svg.attr("width"),
+      h_height = +header_svg.attr("height"),
+      h_angles = d3.range(0, 2 * Math.PI, Math.PI / 200);
 
-  var path = svg.append("g")
-      .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
+  var header_path = header_svg.append("g")
+      .attr("transform", "translate(" + h_width / 2 + "," + h_height / 2 + ")")
       .attr("fill", "none")
       .attr("stroke-width", 2)
       .attr("stroke-linejoin", "round")
@@ -53,8 +63,8 @@
       });
 
   d3.timer(function() {
-    path.attr("d", function(d) {
-      return d(angles);
+    header_path.attr("d", function(d) {
+      return d(h_angles);
     });
   });
 </script>

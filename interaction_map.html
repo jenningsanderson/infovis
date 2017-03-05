@@ -1,0 +1,390 @@
+<html>
+
+  <head>
+
+    <script src='https://api.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v0.32.1/mapbox-gl.css' rel='stylesheet' />
+    <link href="css/tables.css" rel="stylesheet" />
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.0.1/mapbox-gl-geocoder.js'></script>
+    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.0.1/mapbox-gl-geocoder.css' type='text/css' />
+
+    <script src="lib/d3.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <div id="detail" style="width:33%; max-height: 100%; overflow-y:scroll; display:inline-block; background-color:#EEE; float:left;">
+
+      <h2 style="text-align:center; font-family:sans-serif;">Visualizing OSM Rendering</h2>
+
+      <div id="detail-map" style="height:300; width:300; margin:10px auto;"></div>
+
+      <svg id="heightProfile" height="200" width="450" style="margin: 0 auto;"></svg>
+
+      <h3>What is this?</h3>
+      <p>This interactive visualization allows interaction between two independent MapboxGL maps and a d3 bar chart. As you pan around the map on the right (above zoom level 15), the histogram on the left updates to reflect the height profile of all the buildings on the right.<br>Clicking on an object renders it in the smaller map above.</p>
+
+      <p>This visualization was built with <a target="_blank" href="//mapbox.com/mapbox-gl-js">MapboxGL</a> and <a target="_blank" href="//d3js.org">d3</a>. Including examples from: <a target="_blank" href="//bl.ocks.org/mbostock/3808218"> bl.ocks.org</a> and <a target="_blank" href="//mapbox.com/mapbox-gl-js/examples/">MapboxGL Examples</a>
+
+      <table id="detailTable">
+        <!-- <thead>
+          <tr><td>Key</td><td>Value</td></tr>
+        </thead> -->
+        <tbody id='detailTableBody'></tbody>
+      </table>
+
+    </div>
+
+    <div id='map' style='width:66%; height: 100%; display:inline-block; float:right;'></div>
+
+
+  <script type='text/javascript'>
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoiamVubmluZ3NhbmRlcnNvbiIsImEiOiIzMHZndnpvIn0.PS-j7fRK3HGU7IE8rbLT9A';
+    var map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v9',
+      zoom: 15.8,
+      center: [-74.0021,40.7315],
+      hash:true
+    });
+
+    map.addControl(new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken
+    }));
+
+    var detailMap = new mapboxgl.Map({
+      container: 'detail-map',
+      style: 'mapbox://styles/mapbox/light-v9',
+      zoom: 15,
+      pitch: 60,
+      center: map.getCenter(),
+    });
+
+    detailMap.once('load',function(){
+
+      detailMap.addSource('detailSource', {
+       type: 'geojson',
+       data: {
+           "type": "FeatureCollection",
+           "features": [{
+               "type": "Feature",
+               "properties": {},
+               "geometry": {
+                   "type": "Point",
+                   "coordinates": [
+                       -76.53063297271729,
+                       39.18174077994108
+                   ]
+               }
+           }]
+         }
+      });
+
+      detailMap.addLayer({
+        "id": "detail",
+        "type": "fill",
+        "filter":['==', 'area', 'true'],
+        "source": 'detailSource'
+      })
+
+      detailMap.addLayer({
+        "id": "circle-detail",
+        "type": "circle",
+        "filter":['!=', 'extrude', 'true'],
+        "source": 'detailSource',
+        "paint":{
+          "circle-color":"salmon"
+        }
+      })
+
+      detailMap.addLayer({
+        'id': '3d-buildings-default',
+        'source': 'composite',
+        'source-layer': 'building',
+        'filter': ['==', 'extrude', 'true'],
+        'type': 'fill-extrusion',
+        'minzoom': 15,
+        'paint': {
+            'fill-extrusion-color': '#aaa',
+            'fill-extrusion-height': {
+                'type': 'identity',
+                'property': 'height'
+            },
+            'fill-extrusion-base': {
+                'type': 'identity',
+                'property': 'min_height'
+            },
+            'fill-extrusion-opacity': .3
+        }
+      })
+
+      detailMap.addLayer({
+        'id': '3d-buildings',
+        'source': 'detailSource',
+        'filter': ['==', 'extrude', 'true'],
+        'type': 'fill-extrusion',
+        'minzoom': 15,
+        'paint': {
+          'fill-extrusion-color': 'salmon',
+          'fill-extrusion-height': {
+              'type': 'identity',
+              'property': 'height'
+          },
+          'fill-extrusion-base': {
+              'type': 'identity',
+              'property': 'min_height'
+          },
+          'fill-extrusion-opacity': .6
+        }
+      });
+
+      detailMap.addLayer({
+        "id": "detail",
+        "type": "line",
+        "filter":['!=', 'extrude', 'true'],
+        "source": 'detailSource',
+        "layout": {
+            "line-join": "round",
+            "line-cap": "round"
+        },
+        "paint": {
+            "line-color": "salmon",
+            "line-width": 8
+        }
+      })
+    });
+
+    map.once('load',function(){
+      console.log("map loaded")
+      buildSVG(getRenderedHeights())
+    })
+
+    function getRenderedHeights(){
+      var features = map.queryRenderedFeatures()
+      if(map.getZoom()>15){
+        var heights = []
+        var features = map.queryRenderedFeatures()
+        features.forEach(function(feat){
+          if(feat.properties.height){
+            heights.push(feat.properties.height)
+          }
+        })
+        //this part is super ugly... this is terrible, you can do better, J
+        if(heights.length){
+          var dict = {}
+          heights.forEach(function(val){
+            if(dict.hasOwnProperty(val)){
+              dict[val] += 1;
+            }else{
+              dict[val] = 1
+            }
+          })
+          vals = []
+          Object.keys(dict).forEach(function(key){
+            vals.push({'height':+key,'count':+dict[key]})
+          })
+          return vals
+        }
+      }
+      return null
+    }
+
+    // Load the feature that's being mapped
+    map.on('click', function(e) {
+      var features = map.queryRenderedFeatures(e.point, {});
+
+      if (!features.length) { return; }
+      var feature = features[0];
+
+      detailMap.getSource('detailSource').setData(feature)
+
+      //Do some other stuff, like set bounds and such
+      var bbox = turf.bbox(turf.buffer(feature,25,'meters'))
+      detailMap.fitBounds([[bbox[0],bbox[1]],[bbox[2],bbox[3]]])
+
+      // populateTable(feature.properties)
+
+    });
+
+    map.on('mousemove', function(e) {
+      var features = map.queryRenderedFeatures(e.point, {});
+      map.getCanvas().style.cursor = (features.length) ? 'pointer' : '';
+    });
+
+    function populateTable(properties){
+      var oldBody = document.getElementById('detailTableBody')
+      var newBody = document.createElement('tbody')
+        newBody.id = 'detailTableBody'
+      Object.keys(properties).forEach(function(key){
+        var row = document.createElement("tr")
+        var k = document.createElement("td")
+          k.className = "key"
+          k.innerHTML = key
+        row.appendChild(k)
+        var v = document.createElement("td")
+          v.className = "value"
+          v.innerHTML = properties[key]
+        row.appendChild(v)
+        newBody.appendChild(row)
+      })
+      oldBody.parentNode.replaceChild(newBody, oldBody)
+    }
+
+    map.on('moveend',function(e){
+
+      detailMap.panTo(map.getCenter())
+
+
+      if(map.getZoom()<15){
+        if(instructionLabel){return;}
+
+        svg.selectAll("g>*").remove()
+        instructionLabel = g.append("text")
+          .attr("id","instructionLabel")
+          .attr("class","label")
+          .attr("y", (height/2))
+          .text("Zoom in on the map to show building details (scroll to zoom)")
+        graphBuilt = false;
+      }
+      var heights = getRenderedHeights()
+      if (heights){
+        updateSVG(heights)
+      }
+    })
+
+    //The graph
+
+    var svg = d3.select("#heightProfile"),
+      margin = {top: 10, right: 10, bottom: 40, left: 60},
+      width = +svg.attr("width") - margin.left - margin.right,
+      height = +svg.attr("height") - margin.top - margin.bottom;
+
+    var x = d3.scaleLinear().range([0, width])
+        y = d3.scaleLinear().range([height, 0])
+
+    var g = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var xAxis = d3.axisBottom()
+        .scale(x)
+        .ticks(10);
+    var yAxis = d3.axisLeft()
+        .scale(y)
+        .ticks(5);
+
+    var graphBuilt = false
+    var instructionLabel;
+    function buildSVG(heights){
+
+      if (map.getZoom()<15){
+        instructionLabel = g.append("text")
+          .attr("id","instructionLabel")
+          .attr("class","label")
+          .attr("y", (height/2))
+          .text("Zoom in on the right map to to show building details (scroll to zoom)")
+        return
+      }
+
+      if (instructionLabel){
+        g.selectAll("#instructionLabel").remove()
+        instructionLabel = null
+      }
+
+      graphBuilt = true
+
+      console.log('build')
+      x.domain([0, d3.max(heights, function(d) { return d.height;})+1]);
+      y.domain([0, d3.max(heights, function(d) { return d.count; })+1]);
+
+      xAxisG = g.append("g")
+          .attr("class", "axis axis--x")
+          .attr("id","xAxis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(xAxis);
+
+      yAxisG = g.append("g")
+          .attr("class", "axis axis--y")
+          .attr("id","yAxis")
+          .call(yAxis);
+
+      var bars = g.selectAll(".bar")
+        .data(vals)
+        .enter().append("rect")
+          .attr("class", "bar")
+          .attr("x", function(d) { return x(d.height); })
+          .attr("y", function(d) { return y(d.count); })
+          .attr("width", "4")
+          .attr("fill", "orangered")
+          .attr("opacity",'0.6')
+          .attr("height", function(d) { return height - y(d.count); });
+
+      g.append("text")
+        .attr('class','label')
+        .attr('transform','translate('+ (width/2) + ","+(height+margin.top+margin.bottom/1.7)+")")
+        .attr('text-anchor','middle')
+        .text("Building Height (meters)")
+
+      g.append("text")
+        .attr('class','label')
+        .attr('transform','rotate(-90)')
+        .attr("y",(0-margin.left/1.5))
+        .attr("x",(0 - height/2))
+        .attr('text-anchor','middle')
+        .text("Count")
+    }
+
+    function updateSVG(new_vals){
+
+      if(graphBuilt==false){
+        buildSVG(new_vals)
+        return;
+      }
+      console.log('updating')
+      x.domain([0, d3.max(new_vals, function(d) { return d.height;})]);
+      y.domain([0, d3.max(new_vals, function(d) { return d.count; })]);
+
+
+      //Couldn't do it without this reference!
+      //https://bl.ocks.org/mbostock/3808218
+      // DATA JOIN
+      // Join new data with old elements, if any.
+      var bars = g.selectAll(".bar")
+        .data(new_vals);
+
+        // ENTER + UPDATE
+        // After merging the entered elements with the update selection,
+        // apply operations to both.
+        bars.enter().append("rect")
+          .merge(bars)
+            .transition()
+            .duration(750)
+            .attr("class", "bar")
+            .attr("x", function(d) { return x(d.height); })
+            .attr("y", function(d) { return y(d.count); })
+            .attr("width", "4")
+            .attr("height", function(d) { return height - y(d.count); })
+            .attr("fill","orangered")
+            .attr("opacity","0.6")
+
+        // EXIT
+        // Remove old elements as needed.
+        bars.exit().remove();
+
+      svg.select("#xAxis")
+        .transition()
+        .duration(750)
+        .call(xAxis);
+
+      svg.select("#yAxis")
+        .transition()
+        .duration(750)
+        .call(yAxis);
+
+    }
+  </script>
+  </body>
+</html>
