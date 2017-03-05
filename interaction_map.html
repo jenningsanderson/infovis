@@ -25,16 +25,18 @@
       <svg id="heightProfile" height="200" width="450" style="margin: 0 auto;"></svg>
 
       <h3>What is this?</h3>
-      <p>This interactive visualization allows interaction between two independent MapboxGL maps and a d3 bar chart. As you pan around the map on the right (above zoom level 15), the histogram on the left updates to reflect the height profile of all the buildings on the right.<br>Clicking on an object renders it in the smaller map above.</p>
+      <p>This interactive visualization allows interaction between two independent MapboxGL maps and a d3 bar chart. As you pan around the map on the right (above zoom level 15), the histogram on the left updates to reflect the height profile of all the buildings on the right.<br>Clicking on an object renders it in the smaller map above.<br>Scroll down to see the entire table for the selected object.</p>
 
-      <p>This visualization was built with <a target="_blank" href="//mapbox.com/mapbox-gl-js">MapboxGL</a> and <a target="_blank" href="//d3js.org">d3</a>. Including examples from: <a target="_blank" href="//bl.ocks.org/mbostock/3808218"> bl.ocks.org</a> and <a target="_blank" href="//mapbox.com/mapbox-gl-js/examples/">MapboxGL Examples</a>
-
+      <h4 id="attrTable"></h4>
       <table id="detailTable">
-        <!-- <thead>
-          <tr><td>Key</td><td>Value</td></tr>
-        </thead> -->
+        <thead id='detailTableHead'></thead>
         <tbody id='detailTableBody'></tbody>
       </table>
+
+      <p>Built with <a target="_blank" href="//mapbox.com/mapbox-gl-js">MapboxGL</a> and <a target="_blank" href="//d3js.org">d3</a>. Including examples from: <a target="_blank" href="//bl.ocks.org/mbostock/3808218"> bl.ocks.org</a> and <a target="_blank" href="//mapbox.com/mapbox-gl-js/examples/">MapboxGL Examples</a>
+
+
+      <p><a href="//townsendjennings.com">2017 Jennings Anderson</a></p>
 
     </div>
 
@@ -206,7 +208,7 @@
       var bbox = turf.bbox(turf.buffer(feature,25,'meters'))
       detailMap.fitBounds([[bbox[0],bbox[1]],[bbox[2],bbox[3]]])
 
-      // populateTable(feature.properties)
+      populateTable(feature.properties)
 
     });
 
@@ -216,6 +218,13 @@
     });
 
     function populateTable(properties){
+
+      var name = properties.name? properties.name : ''
+
+      document.getElementById('attrTable').innerHTML = "Attribute Table: " + name
+
+      // document.getElementById('detailTableHead').innerHTML = "<tr><td>Key</td><td>Value</td></tr>"
+
       var oldBody = document.getElementById('detailTableBody')
       var newBody = document.createElement('tbody')
         newBody.id = 'detailTableBody'

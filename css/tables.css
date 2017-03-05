@@ -25,7 +25,7 @@ div#detail p{
   font-size: 14px;
 }
 
-div#detail h3{
+div#detail h3, h4{
   font-family: sans-serif;
   margin-left: 10px;
 }
