@@ -274,7 +274,7 @@
       width = +svg.attr("width") - margin.left - margin.right,
       height = +svg.attr("height") - margin.top - margin.bottom;
 
-    var x = d3.scaleLog().range([1, width])
+    var x = d3.scaleLinear().range([0, width])
         y = d3.scaleLinear().range([height, 0])
 
     var g = svg.append("g")
@@ -282,13 +282,10 @@
 
     var xAxis = d3.axisBottom()
         .scale(x)
-        .ticks(10, ",.1s")
-        .tickSize(3, 0);
-
+        .ticks(10);
     var yAxis = d3.axisLeft()
         .scale(y)
         .ticks(5);
-
 
     var graphBuilt = false
     var instructionLabel;
@@ -311,8 +308,8 @@
       graphBuilt = true
 
       console.log('build')
-      x.domain([1, d3.max(heights, function(d) { return d.count;})+1]);
-      y.domain([0, d3.max(heights, function(d) { return d.height; })+1]);
+      x.domain([0, d3.max(heights, function(d) { return d.height;})+1]);
+      y.domain([0, d3.max(heights, function(d) { return d.count; })+1]);
 
       xAxisG = g.append("g")
           .attr("class", "axis axis--x")
@@ -329,17 +326,18 @@
         .data(vals)
         .enter().append("rect")
           .attr("class", "bar")
-          .attr("x", function(d) { return x(d.count); })
-          .attr("y", function(d) { return y(d.height); })
-          .attr("width", "6")
+          .attr("x", function(d) { return x(d.height); })
+          .attr("y", function(d) { return y(d.count); })
+          .attr("width", "4")
           .attr("fill", "orangered")
-          .attr("height", function(d) { return height - y(d.height); });
+          .attr("opacity",'0.6')
+          .attr("height", function(d) { return height - y(d.count); });
 
       g.append("text")
         .attr('class','label')
         .attr('transform','translate('+ (width/2) + ","+(height+margin.top+margin.bottom/1.7)+")")
         .attr('text-anchor','middle')
-        .text("Count")
+        .text("Building Height (meters)")
 
       g.append("text")
         .attr('class','label')
@@ -347,7 +345,7 @@
         .attr("y",(0-margin.left/1.5))
         .attr("x",(0 - height/2))
         .attr('text-anchor','middle')
-        .text("Building Height (meters)")
+        .text("Count")
     }
 
     function updateSVG(new_vals){
@@ -357,8 +355,8 @@
         return;
       }
       console.log('updating')
-      x.domain([1, d3.max(new_vals, function(d) { return d.count;})]);
-      y.domain([0, d3.max(new_vals, function(d) { return d.height; })]);
+      x.domain([0, d3.max(new_vals, function(d) { return d.height;})]);
+      y.domain([0, d3.max(new_vals, function(d) { return d.count; })]);
 
 
       //Couldn't do it without this reference!
@@ -376,11 +374,12 @@
             .transition()
             .duration(750)
             .attr("class", "bar")
-            .attr("x", function(d) { return x(d.count); })
-            .attr("y", function(d) { return y(d.height); })
+            .attr("x", function(d) { return x(d.height); })
+            .attr("y", function(d) { return y(d.count); })
             .attr("width", "4")
-            .attr("height", function(d) { return height - y(d.height); })
+            .attr("height", function(d) { return height - y(d.count); })
             .attr("fill","orangered")
+            .attr("opacity","0.6")
 
         // EXIT
         // Remove old elements as needed.
